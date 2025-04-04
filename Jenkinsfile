@@ -15,7 +15,8 @@ pipeline {
             }
         }
 
-        stage('Terraform Init') {
+
+         stage('Terraform Init') {
             steps {
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                     bat """
@@ -32,42 +33,63 @@ pipeline {
         }
 
         stage('Terraform Plan') {
+    steps {
+        withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+            bat """
+            az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
+            echo "Navigating to Terraform Directory: %TF_WORKING_DIR%"
+            cd %TF_WORKING_DIR%
+            terraform plan -out=tfplan
+            """
+        }
+    }
+}
+
+
+        stage('Terraform Apply') {
+    steps {
+        withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+            bat """
+            az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
+            echo "Navigating to Terraform Directory: %TF_WORKING_DIR%"
+            cd %TF_WORKING_DIR%
+            echo "Applying Terraform Plan..."
+            terraform apply -auto-approve tfplan
+            """
+        }
+    }
+}
+
+    
+
+        stage('Build') {
             steps {
-                bat """
-                echo "Logging into Azure..."
-                az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
-                echo "Checking if Terraform is installed..."
-                terraform -v
-                echo "Navigating to Terraform Directory: $TF_WORKING_DIR"
-                cd $TF_WORKING_DIR
-                echo "Generating Terraform Plan..."
-                terraform plan -out=tfplan
-                """
+                bat 'dotnet restore'
+                bat 'dotnet build --configuration Release'
+                bat 'dotnet publish -c Release -o ./publish'
             }
         }
 
-        stage('Terraform Apply') {
-            steps {
-                bat """
-                echo "Logging into Azure..."
-                az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
-                echo "Checking if Terraform is installed..."
-                terraform -v                
-                echo "Navigating to Terraform Directory: $TF_WORKING_DIR"
-                cd $TF_WORKING_DIR
-                echo "Applying Terraform Plan..."
-                terraform apply -auto-approve tfplan
-                """
-            }
+       stage('Deploy') {
+    steps {
+        withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+            bat """
+            az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
+            powershell Compress-Archive -Path ./publish/* -DestinationPath ./publish.zip -Force
+            az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path ./publish.zip --type zip
+            """
         }
+    }
+}
+
     }
 
     post {
         success {
-            echo 'Terraform Execution Successful! 🎉'
+            echo 'Deployment Successful!'
         }
         failure {
-            echo 'Terraform Execution Failed! ❌'
+            echo 'Deployment Failed!'
         }
     }
 }
