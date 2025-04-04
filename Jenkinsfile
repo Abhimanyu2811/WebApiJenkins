@@ -20,7 +20,6 @@ pipeline {
             steps {
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                     bat """
-                    az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
                     echo "Checking Terraform Installation..."
                     terraform -v
                     echo "Navigating to Terraform Directory: $TF_WORKING_DIR"
@@ -36,7 +35,6 @@ pipeline {
     steps {
         withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
             bat """
-            az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
             echo "Navigating to Terraform Directory: %TF_WORKING_DIR%"
             cd %TF_WORKING_DIR%
             terraform plan -out=tfplan
@@ -50,7 +48,6 @@ pipeline {
     steps {
         withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
             bat """
-            az login --service-principal -u %AZURE_CLIENT_ID% -p %AZURE_CLIENT_SECRET% --tenant %AZURE_TENANT_ID%
             echo "Navigating to Terraform Directory: %TF_WORKING_DIR%"
             cd %TF_WORKING_DIR%
             echo "Applying Terraform Plan..."
