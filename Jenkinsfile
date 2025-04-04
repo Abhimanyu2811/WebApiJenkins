@@ -4,7 +4,7 @@ pipeline {
     environment {
         AZURE_CREDENTIALS_ID = 'jenkins-pipeline-asp'
         RESOURCE_GROUP = 'WebServiceRG'
-        APP_SERVICE_NAME = 'MyTerraformWebApp01'
+        APP_SERVICE_NAME = 'WebApppppppppppp01'
         TF_WORKING_DIR = '.'  // Ensure this is the correct directory where Terraform files exist
     }
 
